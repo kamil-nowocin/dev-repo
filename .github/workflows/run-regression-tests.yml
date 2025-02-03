@@ -6,7 +6,7 @@ on:
 jobs:
   run-regression-tests:
     name: "Build & Execute Tests 🛠️"
-    uses: "kamil-nowocin/workflowTests/.github/workflows/dev-run-tests-workflow.yaml@main"
+    uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
       testModule: "Websters"
       testEnvironment: "UAT (PROD-1)"
