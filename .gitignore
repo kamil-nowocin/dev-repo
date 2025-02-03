@@ -1,8 +1,0 @@
-.gradle/
-.idea/
-.github/scripts/node_modules/
-build/
-test-output/
-allure-report/
-*/src/main/resources/secret-properties.properties
-*.iml
