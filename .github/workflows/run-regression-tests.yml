@@ -1,49 +1,128 @@
 name: TEST | Deploy and Trigger Tests
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: {}  # Still available for manual triggering if desired.
   pull_request:
-    types: [ labeled ]
+    types: [labeled]
   issue_comment:
-    types: [ created ]
+    types: [created]
 
 jobs:
-  determine-env:
-    name: "Determine Test Environment"
+  parse-command:
+    name: "Parse /run-tests Command"
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
-      env: ${{ steps.set-env.outputs.env }}
+      env: ${{ steps.set-params.outputs.env }}
+      module: ${{ steps.set-params.outputs.module }}
+      group: ${{ steps.set-params.outputs.group }}
+      enablePKCE: ${{ steps.set-params.outputs.enablePKCE }}
+      enableTestRetry: ${{ steps.set-params.outputs.enableTestRetry }}
+      enableXrayReport: ${{ steps.set-params.outputs.enableXrayReport }}
+      enableSlackReport: ${{ steps.set-params.outputs.enableSlackReport }}
     steps:
-      - name: Extract environment from comment or set default
-        id: set-env
+      - name: Parse parameters from comment or use defaults
+        id: set-params
+        shell: bash
         run: |
+          # Default values.
+          DEFAULT_ENV="UAT (PROD-1)"
+          DEFAULT_MODULE="Websters"
+          DEFAULT_GROUP="REGRESSION"
+          DEFAULT_BOOL="false"
+
           if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
-            # Assumes comment in the format: "/run-tests PROD"
-            ENV=$(echo "${{ github.event.comment.body }}" | awk '{print $2}')
-            echo "Using environment from comment: $ENV"
+            COMMENT="${{ github.event.comment.body }}"
+            # Expecting the comment in the format:
+            # /run-tests <env> [<module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>]
+            #
+            # Split the comment into tokens. The first token should be "/run-tests".
+            set -- $COMMENT
+            if [ "$#" -lt 2 ]; then
+              ERROR_MSG="Invalid command format. Expected: /run-tests <env> [<module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>]."
+              echo "$ERROR_MSG"
+              curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
+                --request POST \
+                --data "{\"body\": \"${ERROR_MSG}\"}" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
+              exit 1
+            fi
+
+            CMD=$1
+            if [ "$CMD" != "/run-tests" ]; then
+              ERROR_MSG="Invalid command. The command must start with '/run-tests'."
+              echo "$ERROR_MSG"
+              curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
+                --request POST \
+                --data "{\"body\": \"${ERROR_MSG}\"}" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
+              exit 1
+            fi
+
+            # Extract tokens with defaults if not provided.
+            ENV_TOKEN=${2:-$DEFAULT_ENV}
+            MODULE_TOKEN=${3:-$DEFAULT_MODULE}
+            GROUP_TOKEN=${4:-$DEFAULT_GROUP}
+            PKCE_TOKEN=${5:-$DEFAULT_BOOL}
+            TESTRETRY_TOKEN=${6:-$DEFAULT_BOOL}
+            XRAY_TOKEN=${7:-$DEFAULT_BOOL}
+            SLACK_TOKEN=${8:-$DEFAULT_BOOL}
+
+            # Validate the boolean tokens.
+            for VALUE in "$PKCE_TOKEN" "$TESTRETRY_TOKEN" "$XRAY_TOKEN" "$SLACK_TOKEN"; do
+              if [ "$VALUE" != "true" ] && [ "$VALUE" != "false" ]; then
+                ERROR_MSG="Invalid boolean value detected. Expected 'true' or 'false', got '$VALUE'."
+                echo "$ERROR_MSG"
+                curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
+                  --request POST \
+                  --data "{\"body\": \"${ERROR_MSG}\"}" \
+                  "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
+                exit 1
+              fi
+            done
+
+            echo "Using values from comment: ENV='$ENV_TOKEN', MODULE='$MODULE_TOKEN', GROUP='$GROUP_TOKEN', enablePKCE='$PKCE_TOKEN', enableTestRetry='$TESTRETRY_TOKEN', enableXrayReport='$XRAY_TOKEN', enableSlackReport='$SLACK_TOKEN'"
           else
-            ENV="UAT (PROD-1)"
-            echo "Using default environment: $ENV"
+            # For workflow_dispatch or pull_request events, use defaults.
+            ENV_TOKEN=$DEFAULT_ENV
+            MODULE_TOKEN=$DEFAULT_MODULE
+            GROUP_TOKEN=$DEFAULT_GROUP
+            PKCE_TOKEN=$DEFAULT_BOOL
+            TESTRETRY_TOKEN=$DEFAULT_BOOL
+            XRAY_TOKEN=$DEFAULT_BOOL
+            SLACK_TOKEN=$DEFAULT_BOOL
+            echo "Using default values: ENV='$ENV_TOKEN', MODULE='$MODULE_TOKEN', GROUP='$GROUP_TOKEN', enablePKCE='$PKCE_TOKEN', enableTestRetry='$TESTRETRY_TOKEN', enableXrayReport='$XRAY_TOKEN', enableSlackReport='$SLACK_TOKEN'"
           fi
-          # Write the output to the GITHUB_OUTPUT file as recommended
-          echo "env=$ENV" >> $GITHUB_OUTPUT
+
+          # Write outputs for downstream jobs.
+          echo "env=$ENV_TOKEN" >> $GITHUB_OUTPUT
+          echo "module=$MODULE_TOKEN" >> $GITHUB_OUTPUT
+          echo "group=$GROUP_TOKEN" >> $GITHUB_OUTPUT
+          echo "enablePKCE=$PKCE_TOKEN" >> $GITHUB_OUTPUT
+          echo "enableTestRetry=$TESTRETRY_TOKEN" >> $GITHUB_OUTPUT
+          echo "enableXrayReport=$XRAY_TOKEN" >> $GITHUB_OUTPUT
+          echo "enableSlackReport=$SLACK_TOKEN" >> $GITHUB_OUTPUT
 
   run-regression-tests:
     name: "Build & Execute Tests 🛠️"
-    needs: determine-env
+    needs: parse-command
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'deploy-with-tests') ||
-      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/run-tests'))
+      (github.event_name == 'pull_request' &&
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'deploy-with-tests') ||
+      (github.event_name == 'issue_comment' &&
+       startsWith(github.event.comment.body, '/run-tests'))
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
-      testModule: "Websters"
-      testEnvironment: ${{ needs.determine-env.outputs.env }}
-      testGroup: "REGRESSION"
-      enablePKCE: false
-      enableTestRetry: false
-      enableXrayReport: false
-      enableSlackReport: false
+      testModule: ${{ needs.parse-command.outputs.module }}
+      testEnvironment: ${{ needs.parse-command.outputs.env }}
+      testGroup: ${{ needs.parse-command.outputs.group }}
+      enablePKCE: ${{ needs.parse-command.outputs.enablePKCE }}
+      enableTestRetry: ${{ needs.parse-command.outputs.enableTestRetry }}
+      enableXrayReport: ${{ needs.parse-command.outputs.enableXrayReport }}
+      enableSlackReport: ${{ needs.parse-command.outputs.enableSlackReport }}
       triggeredFromDevRepo: true
     secrets:
       XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
