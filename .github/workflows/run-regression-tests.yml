@@ -10,8 +10,6 @@ on:
 jobs:
   run-regression-tests:
     name: "Build & Execute Tests 🛠️"
-    # Run the job if it’s a manual trigger, a PR label event with "deploy-with-tests",
-    # or an issue comment starting with "/run-tests"
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'deploy-with-tests') ||
