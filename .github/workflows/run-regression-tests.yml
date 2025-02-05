@@ -51,8 +51,8 @@ jobs:
               # Expected total tokens: 8 (command + 7 parameters)
               set -- $COMMENT
               if [ "$#" -ne 8 ]; then
-                ERROR_MSG="Invalid command format. Expected: /run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>. For example: /run-tests PROD Websters REGRESSION true false false true"
-                echo "$ERROR_MSG"
+                ERROR_MSG="/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>"
+                echo "Invalid command format. Expected: ${ERROR_MSG}"
                 curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
                   --request POST \
                   --data "{\"body\": \"${ERROR_MSG}\"}" \
