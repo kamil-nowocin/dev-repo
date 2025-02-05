@@ -25,7 +25,8 @@ jobs:
             ENV="UAT (PROD-1)"
             echo "Using default environment: $ENV"
           fi
-          echo "::set-output name=env::$ENV"
+          # Write the output to the GITHUB_OUTPUT file as recommended
+          echo "env=$ENV" >> $GITHUB_OUTPUT
 
   run-regression-tests:
     name: "Build & Execute Tests 🛠️"
