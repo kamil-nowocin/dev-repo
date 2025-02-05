@@ -1,7 +1,7 @@
 name: TEST | Deploy and Trigger Tests
 
 on:
-  workflow_dispatch: {}  # Still available for manual triggering if desired.
+  workflow_dispatch: {}  # Manual trigger is still available.
   pull_request:
     types: [labeled]
   issue_comment:
@@ -10,6 +10,8 @@ on:
 jobs:
   parse-command:
     name: "Parse /run-tests Command"
+    # Only run this job for non-issue_comment events or for issue comments that start with /run-tests.
+    if: github.event_name != 'issue_comment' || startsWith(github.event.comment.body, '/run-tests')
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -26,7 +28,7 @@ jobs:
         id: set-params
         shell: bash
         run: |
-          # Default values.
+          # Default values
           DEFAULT_ENV="UAT (PROD-1)"
           DEFAULT_MODULE="Websters"
           DEFAULT_GROUP="REGRESSION"
@@ -34,45 +36,23 @@ jobs:
 
           if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
             COMMENT="${{ github.event.comment.body }}"
-            # Expecting the comment in the format:
-            # /run-tests <env> [<module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>]
-            #
-            # Split the comment into tokens. The first token should be "/run-tests".
-            set -- $COMMENT
-            if [ "$#" -lt 2 ]; then
-              ERROR_MSG="Invalid command format. Expected: /run-tests <env> [<module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>]."
-              echo "$ERROR_MSG"
-              curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
-                --request POST \
-                --data "{\"body\": \"${ERROR_MSG}\"}" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
-              exit 1
-            fi
-
-            CMD=$1
-            if [ "$CMD" != "/run-tests" ]; then
-              ERROR_MSG="Invalid command. The command must start with '/run-tests'."
-              echo "$ERROR_MSG"
-              curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
-                --request POST \
-                --data "{\"body\": \"${ERROR_MSG}\"}" \
-                "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
-              exit 1
-            fi
-
-            # Extract tokens with defaults if not provided.
-            ENV_TOKEN=${2:-$DEFAULT_ENV}
-            MODULE_TOKEN=${3:-$DEFAULT_MODULE}
-            GROUP_TOKEN=${4:-$DEFAULT_GROUP}
-            PKCE_TOKEN=${5:-$DEFAULT_BOOL}
-            TESTRETRY_TOKEN=${6:-$DEFAULT_BOOL}
-            XRAY_TOKEN=${7:-$DEFAULT_BOOL}
-            SLACK_TOKEN=${8:-$DEFAULT_BOOL}
-
-            # Validate the boolean tokens.
-            for VALUE in "$PKCE_TOKEN" "$TESTRETRY_TOKEN" "$XRAY_TOKEN" "$SLACK_TOKEN"; do
-              if [ "$VALUE" != "true" ] && [ "$VALUE" != "false" ]; then
-                ERROR_MSG="Invalid boolean value detected. Expected 'true' or 'false', got '$VALUE'."
+            # Although the job-level if ensures the comment starts with /run-tests,
+            # double-check it here so we only post error comments for /run-tests commands.
+            if [[ "$COMMENT" != /run-tests* ]]; then
+              echo "Comment does not start with /run-tests. Using default values."
+              ENV_TOKEN=$DEFAULT_ENV
+              MODULE_TOKEN=$DEFAULT_MODULE
+              GROUP_TOKEN=$DEFAULT_GROUP
+              PKCE_TOKEN=$DEFAULT_BOOL
+              TESTRETRY_TOKEN=$DEFAULT_BOOL
+              XRAY_TOKEN=$DEFAULT_BOOL
+              SLACK_TOKEN=$DEFAULT_BOOL
+            else
+              # Expecting the comment in the format:
+              # /run-tests <env> [<module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>]
+              set -- $COMMENT
+              if [ "$#" -lt 2 ]; then
+                ERROR_MSG="Invalid command format. Expected: /run-tests <env> [<module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>]."
                 echo "$ERROR_MSG"
                 curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
                   --request POST \
@@ -80,11 +60,30 @@ jobs:
                   "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
                 exit 1
               fi
-            done
 
-            echo "Using values from comment: ENV='$ENV_TOKEN', MODULE='$MODULE_TOKEN', GROUP='$GROUP_TOKEN', enablePKCE='$PKCE_TOKEN', enableTestRetry='$TESTRETRY_TOKEN', enableXrayReport='$XRAY_TOKEN', enableSlackReport='$SLACK_TOKEN'"
+              ENV_TOKEN=${2:-$DEFAULT_ENV}
+              MODULE_TOKEN=${3:-$DEFAULT_MODULE}
+              GROUP_TOKEN=${4:-$DEFAULT_GROUP}
+              PKCE_TOKEN=${5:-$DEFAULT_BOOL}
+              TESTRETRY_TOKEN=${6:-$DEFAULT_BOOL}
+              XRAY_TOKEN=${7:-$DEFAULT_BOOL}
+              SLACK_TOKEN=${8:-$DEFAULT_BOOL}
+
+              # Validate that boolean tokens are either "true" or "false"
+              for VALUE in "$PKCE_TOKEN" "$TESTRETRY_TOKEN" "$XRAY_TOKEN" "$SLACK_TOKEN"; do
+                if [ "$VALUE" != "true" ] && [ "$VALUE" != "false" ]; then
+                  ERROR_MSG="Invalid boolean value detected. Expected 'true' or 'false', got '$VALUE'."
+                  echo "$ERROR_MSG"
+                  curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
+                    --request POST \
+                    --data "{\"body\": \"${ERROR_MSG}\"}" \
+                    "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
+                  exit 1
+                fi
+              done
+            fi
           else
-            # For workflow_dispatch or pull_request events, use defaults.
+            # For non-issue_comment events, use default values.
             ENV_TOKEN=$DEFAULT_ENV
             MODULE_TOKEN=$DEFAULT_MODULE
             GROUP_TOKEN=$DEFAULT_GROUP
@@ -92,10 +91,8 @@ jobs:
             TESTRETRY_TOKEN=$DEFAULT_BOOL
             XRAY_TOKEN=$DEFAULT_BOOL
             SLACK_TOKEN=$DEFAULT_BOOL
-            echo "Using default values: ENV='$ENV_TOKEN', MODULE='$MODULE_TOKEN', GROUP='$GROUP_TOKEN', enablePKCE='$PKCE_TOKEN', enableTestRetry='$TESTRETRY_TOKEN', enableXrayReport='$XRAY_TOKEN', enableSlackReport='$SLACK_TOKEN'"
           fi
 
-          # Write outputs for downstream jobs.
           echo "env=$ENV_TOKEN" >> $GITHUB_OUTPUT
           echo "module=$MODULE_TOKEN" >> $GITHUB_OUTPUT
           echo "group=$GROUP_TOKEN" >> $GITHUB_OUTPUT
