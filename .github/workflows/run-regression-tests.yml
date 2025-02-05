@@ -2,14 +2,26 @@ name: TEST | Deploy and Trigger Tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    types: [ labeled ]
+  issue_comment:
+    types: [ created ]
 
 jobs:
   run-regression-tests:
     name: "Build & Execute Tests 🛠️"
+    # Run the job if it’s a manual trigger, a PR label event with "deploy-with-tests",
+    # or an issue comment starting with "/run-tests"
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'deploy-with-tests') ||
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/run-tests'))
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
       testModule: "Websters"
-      testEnvironment: "UAT (PROD-1)"
+      testEnvironment: ${{ github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/run-tests')
+                         ? split(github.event.comment.body, ' ')[1]
+        : 'UAT (PROD-1)' } }
       testGroup: "REGRESSION"
       enablePKCE: false
       enableTestRetry: false
