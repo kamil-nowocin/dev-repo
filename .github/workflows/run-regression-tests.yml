@@ -51,11 +51,11 @@ jobs:
               # Expected total tokens: 8 (command + 7 parameters)
               set -- $COMMENT
               if [ "$#" -ne 8 ]; then
-                ERROR_MSG="/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>"
+                ERROR_MSG="/run-tests &lt;env&gt; &lt;module&gt; &lt;group&gt; &lt;enablePKCE&gt; &lt;enableTestRetry&gt; &lt;enableXrayReport&gt; &lt;enableSlackReport&gt;"
                 echo "Invalid command format. Expected: ${ERROR_MSG}"
                 curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
                   --request POST \
-                  --data "{\"body\": \"${ERROR_MSG}\"}" \
+                  --data "{\"body\": \"Invalid command format. Expected: ${ERROR_MSG}\"}" \
                   "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/${{ github.event.issue.number }}/comments"
                 exit 1
               fi
@@ -129,13 +129,4 @@ jobs:
       testModule: ${{ needs.parse-command.outputs.module }}
       testEnvironment: ${{ needs.parse-command.outputs.env }}
       testGroup: ${{ needs.parse-command.outputs.group }}
-      enablePKCE: ${{ needs.parse-command.outputs.enablePKCE }}
-      enableTestRetry: ${{ needs.parse-command.outputs.enableTestRetry }}
-      enableXrayReport: ${{ needs.parse-command.outputs.enableXrayReport }}
-      enableSlackReport: ${{ needs.parse-command.outputs.enableSlackReport }}
-      triggeredFromDevRepo: true
-    secrets:
-      XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
-      XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
-      SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
-      MY_GITHUB_SECRET: ${{ secrets.MY_GITHUB_SECRET }}
+      enablePKCE: ${{ needs.parse-com
