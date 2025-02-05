@@ -48,10 +48,10 @@ jobs:
               SLACK_TOKEN=$DEFAULT_BOOL
             else
               # Split the comment into tokens.
-              # Expected total tokens: 8
+              # Expected total tokens: 8 (command + 7 parameters)
               set -- $COMMENT
               if [ "$#" -ne 8 ]; then
-                ERROR_MSG="Invalid command format. Expected: /run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>"
+                ERROR_MSG="Invalid command format. Expected: /run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>. For example: /run-tests PROD Websters REGRESSION true false false true"
                 echo "$ERROR_MSG"
                 curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
                   --request POST \
