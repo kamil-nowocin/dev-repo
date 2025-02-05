@@ -6,12 +6,14 @@ on:
     types: [labeled]
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
 
 jobs:
   parse-command:
     name: "Parse /run-tests Command"
-    # Only run this job if the event is not an issue_comment OR if it is and the comment starts with /run-tests.
-    if: github.event_name != 'issue_comment' || startsWith(github.event.comment.body, '/run-tests')
+    # Run this job if the event is not an issue/review comment OR if it is and the comment starts with /run-tests.
+    if: (github.event_name != 'issue_comment' && github.event_name != 'pull_request_review_comment') || startsWith(github.event.comment.body, '/run-tests')
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -28,20 +30,22 @@ jobs:
         id: set-params
         shell: bash
         run: |
-          # Define default values (used for non-issue_comment events)
+          # Define default values (used for non-comment events)
           DEFAULT_ENV="UAT (PROD-1)"
           DEFAULT_MODULE="Websters"
           DEFAULT_GROUP="REGRESSION"
           DEFAULT_BOOL="false"
 
-          # For issue_comment events, capture the issue number into a shell variable.
+          # For comment events, capture the relevant issue/PR number.
           if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
             ISSUE_NUMBER="${{ github.event.issue.number }}"
+          elif [ "${GITHUB_EVENT_NAME}" = "pull_request_review_comment" ]; then
+            ISSUE_NUMBER="${{ github.event.pull_request.number }}"
           fi
 
-          if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
+          if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ] || [ "${GITHUB_EVENT_NAME}" = "pull_request_review_comment" ]; then
             COMMENT="${{ github.event.comment.body }}"
-            # Ensure the comment starts with /run-tests (job-level if already ensures this, but we double-check)
+            # Ensure the comment starts with /run-tests
             if [[ "$COMMENT" != /run-tests* ]]; then
               echo "Comment does not start with /run-tests. Using default values."
               ENV_TOKEN=$DEFAULT_ENV
@@ -53,10 +57,10 @@ jobs:
               SLACK_TOKEN=$DEFAULT_BOOL
             else
               # Split the comment into tokens.
-              # Expected total tokens: 8 (command + 7 parameters)
+              # Expected total tokens: 8 (command + 7 required parameters)
               set -- $COMMENT
               if [ "$#" -ne 8 ]; then
-                ERROR_MSG="/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>"
+                ERROR_MSG="/run-tests '<env>' '<module>' '<group>' '<enablePKCE>' '<enableTestRetry>' '<enableXrayReport>' '<enableSlackReport>'"
                 echo "Invalid command format. Expected: ${ERROR_MSG}"
                 curl -s -H "Authorization: token ${GITHUB_TOKEN}" -H "Content-Type: application/json" \
                   --request POST \
@@ -100,7 +104,7 @@ jobs:
               echo "Using values from comment: ENV='$ENV_TOKEN', MODULE='$MODULE_TOKEN', GROUP='$GROUP_TOKEN', enablePKCE='$PKCE_TOKEN', enableTestRetry='$TESTRETRY_TOKEN', enableXrayReport='$XRAY_TOKEN', enableSlackReport='$SLACK_TOKEN'"
             fi
           else
-            # For workflow_dispatch or pull_request events, use default values.
+            # For workflow_dispatch or pull_request label events, use default values.
             ENV_TOKEN=$DEFAULT_ENV
             MODULE_TOKEN=$DEFAULT_MODULE
             GROUP_TOKEN=$DEFAULT_GROUP
@@ -127,7 +131,7 @@ jobs:
       (github.event_name == 'pull_request' &&
        github.event.action == 'labeled' &&
        github.event.label.name == 'deploy-with-tests') ||
-      (github.event_name == 'issue_comment' &&
+      ( (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') &&
        startsWith(github.event.comment.body, '/run-tests'))
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
