@@ -1,0 +1,23 @@
+name: TEST | Deploy and Trigger Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-regression-tests:
+    name: "Build & Execute Tests 🛠️"
+    uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
+    with:
+      testModule: "Websters"
+      testEnvironment: "UAT (PROD-1)"
+      testGroup: "REGRESSION"
+      enablePKCE: false
+      enableTestRetry: false
+      enableXrayReport: false
+      enableSlackReport: false
+      triggeredFromDevRepo: true
+    secrets:
+      XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
+      XRAY_CLIENT_SECRET: ${{ secrets.XRAY_CLIENT_SECRET }}
+      SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+      MY_GITHUB_SECRET: ${{ secrets.MY_GITHUB_SECRET }}
