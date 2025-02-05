@@ -8,19 +8,36 @@ on:
     types: [ created ]
 
 jobs:
+  determine-env:
+    name: "Determine Test Environment"
+    runs-on: ubuntu-latest
+    outputs:
+      env: ${{ steps.set-env.outputs.env }}
+    steps:
+      - name: Extract environment from comment or set default
+        id: set-env
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "issue_comment" ]; then
+            # Assumes comment in the format: "/run-tests PROD"
+            ENV=$(echo "${{ github.event.comment.body }}" | awk '{print $2}')
+            echo "Using environment from comment: $ENV"
+          else
+            ENV="UAT (PROD-1)"
+            echo "Using default environment: $ENV"
+          fi
+          echo "::set-output name=env::$ENV"
+
   run-regression-tests:
     name: "Build & Execute Tests 🛠️"
+    needs: determine-env
     if: >
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request' &&
-       github.event.action == 'labeled' &&
-       github.event.label.name == 'deploy-with-tests') ||
-      (github.event_name == 'issue_comment' &&
-       startsWith(github.event.comment.body, '/run-tests'))
+      (github.event_name == 'pull_request' && github.event.action == 'labeled' && github.event.label.name == 'deploy-with-tests') ||
+      (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/run-tests'))
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
       testModule: "Websters"
-      testEnvironment: "${{ (github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/run-tests') && split(github.event.comment.body, ' ')[1]) || 'UAT (PROD-1)' }}"
+      testEnvironment: ${{ needs.determine-env.outputs.env }}
       testGroup: "REGRESSION"
       enablePKCE: false
       enableTestRetry: false
