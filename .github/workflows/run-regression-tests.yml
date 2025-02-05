@@ -17,9 +17,10 @@ jobs:
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
       testModule: "Websters"
-      testEnvironment: ${{ github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/run-tests')
-                         ? split(github.event.comment.body, ' ')[1]
-        : 'UAT (PROD-1)' } }
+      testEnvironment: >
+        ${{ github.event_name == 'issue_comment' &&
+            startsWith(github.event.comment.body, '/run-tests') ?
+            split(github.event.comment.body, ' ')[1] : 'UAT (PROD-1)' }}
       testGroup: "REGRESSION"
       enablePKCE: false
       enableTestRetry: false
