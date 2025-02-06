@@ -38,7 +38,7 @@ module.exports = async function manageLabels(github, context) {
     const tokens = commentBody.split(/\s+/);
     if (tokens.length !== 8) {
       const expectedFormat =
-          "```\n/run-tests '<env>' '<module>' '<group>' '<enablePKCE>' '<enableTestRetry>' '<enableXrayReport>' '<enableSlackReport>'\n```";
+          "```bash\n/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>\n```";
       // Post an error comment to the issue/PR
       await github.rest.issues.createComment({
         ...context.repo,
@@ -49,7 +49,7 @@ module.exports = async function manageLabels(github, context) {
     }
     if (tokens[0] !== '/run-tests') {
       const expectedFormat =
-          "```\n/run-tests '<env>' '<module>' '<group>' '<enablePKCE>' '<enableTestRetry>' '<enableXrayReport>' '<enableSlackReport>'\n```";
+          "```bash\n/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>\n```";
       await github.rest.issues.createComment({
         ...context.repo,
         issue_number: issueNumber,
