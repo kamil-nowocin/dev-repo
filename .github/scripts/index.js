@@ -45,7 +45,7 @@ module.exports = async function parseRunTests(github, context) {
   // Allowed sets.
   const allowedEnvs = ['prod', 'uat', 'intg', 'dev'];
   const allowedModules = ['Websters', 'Klasters'];
-  const allowedGroups = ['regression', 'smoke', 'all'];
+  const allowedGroups = ['REGRESSION', 'SMOKE', 'ALL'];
 
   // For workflow_dispatch events, return defaults.
   if (context.eventName === 'workflow_dispatch') {
