@@ -1,0 +1,11 @@
+{
+  "name": "github-actions-scripts",
+  "version": "1.0.0",
+  "description": "Scripts for GitHub Actions workflow",
+  "main": "index.js",
+  "scripts": {
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1"
+  }
+}

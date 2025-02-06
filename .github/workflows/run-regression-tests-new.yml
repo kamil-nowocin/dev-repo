@@ -25,14 +25,14 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v4
 
-#      - name: "Set up Node.js"
-#        uses: actions/setup-node@v4
-#        with:
-#          node-version: "20"
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-#      - name: "Install NPM Dependencies"
-#        run: npm install
-#        working-directory: .github/scripts
+      - name: "Install NPM Dependencies"
+        run: npm install
+        working-directory: .github/scripts
 
       - name: "Grant execute permission for scripts in .github/scripts"
         run: chmod +x ${{ github.workspace }}/.github/scripts/*
