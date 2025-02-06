@@ -30,7 +30,7 @@ function validateAllowed(val, allowed, field, caseInsensitive = false) {
   const cmpVal = caseInsensitive ? val.toLowerCase() : val;
   const allowedValues = caseInsensitive ? allowed.map(x => x.toLowerCase()) : allowed;
   if (!allowedValues.includes(cmpVal)) {
-    throw new Error(`Invalid ${field}: ${val}. Allowed: ${allowed.join(', ')}.`);
+    throw new Error(`Invalid ${field}: ${val}! Allowed: ${allowed.join(', ')}.`);
   }
   return val;
 }
