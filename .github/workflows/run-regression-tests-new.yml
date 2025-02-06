@@ -63,14 +63,14 @@ jobs:
       testModule: "${{ needs.parse-command.outputs.module }}"
       testEnvironment: "${{ needs.parse-command.outputs.env }}"
       testGroup: "${{ needs.parse-command.outputs.group }}"
-      enablePKCE: ${{ needs.parse-command.outputs.enablePKCE }}
-      enableTestRetry: ${{ needs.parse-command.outputs.enableTestRetry }}
-      enableXrayReport: ${{ needs.parse-command.outputs.enableXrayReport }}
-      enableSlackReport: ${{ needs.parse-command.outputs.enableSlackReport }}
-      #      enablePKCE: ${{ fromJson(needs.parse-command.outputs.enablePKCE) }}
-      #      enableTestRetry: ${{ fromJson(needs.parse-command.outputs.enableTestRetry) }}
-      #      enableXrayReport: ${{ fromJson(needs.parse-command.outputs.enableXrayReport) }}
-      #      enableSlackReport: ${{ fromJson(needs.parse-command.outputs.enableSlackReport) }}
+#      enablePKCE: ${{ needs.parse-command.outputs.enablePKCE }}
+#      enableTestRetry: ${{ needs.parse-command.outputs.enableTestRetry }}
+#      enableXrayReport: ${{ needs.parse-command.outputs.enableXrayReport }}
+#      enableSlackReport: ${{ needs.parse-command.outputs.enableSlackReport }}
+      enablePKCE: ${{ fromJson(needs.parse-command.outputs.enablePKCE) }}
+      enableTestRetry: ${{ fromJson(needs.parse-command.outputs.enableTestRetry) }}
+      enableXrayReport: ${{ fromJson(needs.parse-command.outputs.enableXrayReport) }}
+      enableSlackReport: ${{ fromJson(needs.parse-command.outputs.enableSlackReport) }}
       triggeredFromDevRepo: true
     secrets:
       XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
