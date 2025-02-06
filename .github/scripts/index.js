@@ -30,7 +30,7 @@ function validateAllowed(val, allowed, field, caseInsensitive = false) {
   const cmpVal = caseInsensitive ? val.toLowerCase() : val;
   const allowedValues = caseInsensitive ? allowed.map(x => x.toLowerCase()) : allowed;
   if (!allowedValues.includes(cmpVal)) {
-    throw new Error(`Invalid ${field}: ${val}. Allowed: ${allowed.join(', ')}.`);
+    throw new Error(`Invalid ${field}: ${val}! Allowed: ${allowed.join(', ')}.`);
   }
   return val;
 }
@@ -50,7 +50,6 @@ module.exports = async function parseRunTests(github, context) {
   // For workflow_dispatch events, return defaults.
   if (context.eventName === 'workflow_dispatch') {
     return {
-      skip: 'false',
       env: DEFAULT_ENV,
       module: DEFAULT_MODULE,
       group: DEFAULT_GROUP,
@@ -70,9 +69,8 @@ module.exports = async function parseRunTests(github, context) {
     const repo = context.repo;
     const commentBody = context.payload.comment.body.trim();
 
-    // If the comment does not start with /run-tests, return a flag to skip tests.
     if (!commentBody.startsWith('/run-tests')) {
-      return { skip: 'true' };
+      throw new Error('Comment does not contain \'/run-tests\'. Skipping tests execution!');
     }
 
     const tokens = commentBody.split(/\s+/);
@@ -92,7 +90,7 @@ module.exports = async function parseRunTests(github, context) {
       validateAllowed(moduleArg, allowedModules, 'module');
       validateAllowed(groupArg, allowedGroups, 'group');
     } catch (err) {
-      await postError(github, repo, issueNumber, `${err.message}`);
+      await postError(github, repo, issueNumber, err.message);
     }
 
     for (const val of [enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport]) {
@@ -101,7 +99,6 @@ module.exports = async function parseRunTests(github, context) {
       }
     }
     return {
-      skip: 'false',
       env: envArg.toLowerCase(),
       module: moduleArg,
       group: groupArg,
@@ -112,5 +109,5 @@ module.exports = async function parseRunTests(github, context) {
     };
   }
 
-  throw new Error('Unsupported event type for this workflow!');
+  throw new Error('Unsupported event type for this workflow.');
 };
