@@ -35,28 +35,20 @@ function validateAllowed(val, allowed, field, caseInsensitive = false) {
   return val;
 }
 
-module.exports = async function manageLabels(github, context) {
-  // Default values for non-comment events (e.g., workflow_dispatch).
+module.exports = async function parseRunTests(github, context) {
+  // Default values for manual triggers.
   const DEFAULT_ENV = 'uat';
   const DEFAULT_MODULE = 'Websters';
   const DEFAULT_GROUP = 'regression';
   const DEFAULT_BOOL = 'false';
 
   // Allowed sets.
-  const allowedEnvs = ['PROD', 'UAT', 'INTG', 'DEV'];
+  const allowedEnvs = ['prod', 'uat', 'intg', 'dev'];
   const allowedModules = ['Websters', 'Klasters'];
-  const allowedGroups = ['REGRESSION', 'SMOKE', "ALL"];
+  const allowedGroups = ['regression', 'smoke', 'all'];
 
-  // If the event is workflow_dispatch, use defaults.
+  // For workflow_dispatch events, return defaults.
   if (context.eventName === 'workflow_dispatch') {
-    // Note: 'core' is used here to set outputs, so it is not unused.
-    core.setOutput('env', DEFAULT_ENV);
-    core.setOutput('module', DEFAULT_MODULE);
-    core.setOutput('group', DEFAULT_GROUP);
-    core.setOutput('enablePKCE', DEFAULT_BOOL);
-    core.setOutput('enableTestRetry', DEFAULT_BOOL);
-    core.setOutput('enableXrayReport', DEFAULT_BOOL);
-    core.setOutput('enableSlackReport', DEFAULT_BOOL);
     return {
       env: DEFAULT_ENV,
       module: DEFAULT_MODULE,
@@ -78,8 +70,7 @@ module.exports = async function manageLabels(github, context) {
     const commentBody = context.payload.comment.body.trim();
 
     if (!commentBody.startsWith('/run-tests')) {
-      // Here we throw an error to indicate that tests should not run.
-      throw new Error('Comment does not contain /run-tests; skipping tests.');
+      throw new Error('Comment does not contain \'/run-tests\'. Skipping tests execution!');
     }
 
     const tokens = commentBody.split(/\s+/);
@@ -99,12 +90,12 @@ module.exports = async function manageLabels(github, context) {
       validateAllowed(moduleArg, allowedModules, 'module');
       validateAllowed(groupArg, allowedGroups, 'group');
     } catch (err) {
-      await postError(github, repo, issueNumber, `\`\`\`\n${err.message}\n\`\`\``);
+      await postError(github, repo, issueNumber, err.message);
     }
 
     for (const val of [enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport]) {
       if (val !== 'true' && val !== 'false') {
-        await postError(github, repo, issueNumber, "```bash\nInvalid boolean value. Expected 'true' or 'false'.\n```");
+        await postError(github, repo, issueNumber, "Invalid boolean value. Expected 'true' or 'false'.");
       }
     }
     return {
