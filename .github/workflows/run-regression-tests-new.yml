@@ -44,7 +44,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const manageLabels = require('./.github/scripts/manage-labels.js');
+            const manageLabels = require('./.github/scripts/index.js');
             // Call the function and await its result.
             const result = await manageLabels(github, context);
             // Set outputs for downstream jobs.
