@@ -41,7 +41,7 @@ module.exports = async function manageLabels(github, context) {
       });
       throw new Error('Invalid command');
     }
-    const [envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport] = tokens;
+    const [cmd, envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport] = tokens;
 
     for (const val of
         [enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport]) {
