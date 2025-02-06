@@ -1,7 +1,7 @@
 const core = require('@actions/core');
 
 /**
- * Posts an error comment to the issue/PR and returns an object indicating to skip tests.
+ * Posts an error comment to the issue/PR and returns an object indicating tests should be skipped.
  * @param {object} github - Authenticated GitHub client.
  * @param {object} repo - Repository object ({owner, repo}).
  * @param {number} issueNumber - The issue or PR number.
@@ -70,7 +70,7 @@ module.exports = async function parseRunTests(github, context) {
     const repo = context.repo;
     const commentBody = context.payload.comment.body.trim();
 
-    // If the comment does not start with "/run-tests", skip tests.
+    // If the comment does not start with /run-tests, skip tests.
     if (!commentBody.startsWith('/run-tests')) {
       core.info("Comment does not contain '/run-tests'; skipping tests execution.");
       return { skip: "true" };
@@ -86,7 +86,16 @@ module.exports = async function parseRunTests(github, context) {
       return await postError(github, repo, issueNumber, `Invalid command. Expected command to start with /run-tests.\n${expectedFormat}`);
     }
 
-    const [ , envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport ] = tokens;
+    const [
+      , // Skip the command itself.
+      envArg,
+      moduleArg,
+      groupArg,
+      enablePKCE,
+      enableTestRetry,
+      enableXrayReport,
+      enableSlackReport
+    ] = tokens;
 
     try {
       validateAllowed(envArg, allowedEnvs, 'environment', true);
