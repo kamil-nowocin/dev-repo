@@ -81,7 +81,7 @@ module.exports = async function parseRunTests(github, context) {
 
     const tokens = commentBody.split(/\s+/);
     // Define the expected format with HTML entities for GitHub comment.
-    const expectedFormatForComment = "```bash\n/run-tests &lt;env&gt; &lt;module&gt; &lt;group&gt; &lt;enablePKCE&gt; &lt;enableTestRetry&gt; &lt;enableXrayReport&gt; &lt;enableSlackReport&gt;\n```";
+    const expectedFormatForComment = "`/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>`";
     // Plain text expected format for CI/CD logs.
     const expectedFormatLog = "/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>";
 
@@ -91,7 +91,7 @@ module.exports = async function parseRunTests(github, context) {
           repo,
           issueNumber,
           `Invalid command format. Expected: ${expectedFormatLog}`,
-          `Invalid command format. Expected:\n${expectedFormatForComment}`
+          `Invalid command format.\nExpected: ${expectedFormatForComment}`
       );
     }
     if (tokens[0] !== '/run-tests') {
