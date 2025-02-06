@@ -1,23 +1,24 @@
 const core = require('@actions/core');
 
 /**
- * Posts an error comment to the issue/PR and returns an object indicating tests should be skipped.
+ * Posts an error comment to the issue/PR, logs a plain-text message,
+ * and returns an object indicating tests should be skipped.
  * @param {object} github - Authenticated GitHub client.
  * @param {object} repo - Repository object ({owner, repo}).
  * @param {number} issueNumber - The issue or PR number.
- * @param {string} message - The error message.
+ * @param {string} logMessage - The error message to log in CI/CD (plain text).
+ * @param {string} commentMessage - The error message to post to GitHub (formatted).
  * @returns {object} - An object with skip: "true".
  */
-async function postError(github, repo, issueNumber, message) {
-  // Post a comment with markdown formatting if desired.
+async function postError(github, repo, issueNumber, logMessage, commentMessage) {
   await github.rest.issues.createComment({
     owner: repo.owner,
     repo: repo.repo,
     issue_number: issueNumber,
-    body: message,
+    body: commentMessage,
   });
-  // Log a plain-text error to CI/CD logs.
-  core.error(message.replace(/[`]/g, ''));
+  // Log the plain-text message (without markdown formatting)
+  core.error(logMessage);
   return { skip: "true" };
 }
 
@@ -79,13 +80,28 @@ module.exports = async function parseRunTests(github, context) {
     }
 
     const tokens = commentBody.split(/\s+/);
-    // Use a plain-text expected format for CI/CD logs.
-    const expectedFormat = "/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>";
+    // Define the expected format with HTML entities for GitHub comment.
+    const expectedFormatForComment = "```bash\n/run-tests &lt;env&gt; &lt;module&gt; &lt;group&gt; &lt;enablePKCE&gt; &lt;enableTestRetry&gt; &lt;enableXrayReport&gt; &lt;enableSlackReport&gt;\n```";
+    // Plain text expected format for CI/CD logs.
+    const expectedFormatLog = "/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>";
+
     if (tokens.length !== 8) {
-      return await postError(github, repo, issueNumber, `Invalid command format. Expected: ${expectedFormat}`);
+      return await postError(
+          github,
+          repo,
+          issueNumber,
+          `Invalid command format. Expected: ${expectedFormatLog}`,
+          `Invalid command format. Expected:\n${expectedFormatForComment}`
+      );
     }
     if (tokens[0] !== '/run-tests') {
-      return await postError(github, repo, issueNumber, `Invalid command. Expected command to start with /run-tests. ${expectedFormat}`);
+      return await postError(
+          github,
+          repo,
+          issueNumber,
+          `Invalid command. Expected command to start with /run-tests. ${expectedFormatLog}`,
+          `Invalid command. Expected command to start with /run-tests.\n${expectedFormatForComment}`
+      );
     }
 
     const [ , envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport ] = tokens;
@@ -95,12 +111,24 @@ module.exports = async function parseRunTests(github, context) {
       validateAllowed(moduleArg, allowedModules, 'module');
       validateAllowed(groupArg, allowedGroups, 'group');
     } catch (err) {
-      return await postError(github, repo, issueNumber, err.message);
+      return await postError(
+          github,
+          repo,
+          issueNumber,
+          err.message,
+          err.message
+      );
     }
 
     for (const val of [enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport]) {
       if (val !== 'true' && val !== 'false') {
-        return await postError(github, repo, issueNumber, "Invalid boolean value. Expected 'true' or 'false'.");
+        return await postError(
+            github,
+            repo,
+            issueNumber,
+            "Invalid boolean value. Expected 'true' or 'false'.",
+            "Invalid boolean value. Expected 'true' or 'false'."
+        );
       }
     }
     return {
