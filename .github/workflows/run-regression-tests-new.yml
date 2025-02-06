@@ -68,13 +68,13 @@ jobs:
        startsWith(github.event.comment.body, '/run-tests'))
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
-      testModule: ${{ needs.parse-command.outputs.module }}
-      testEnvironment: ${{ needs.parse-command.outputs.env }}
-      testGroup: ${{ needs.parse-command.outputs.group }}
-      enablePKCE: ${{ needs.parse-command.outputs.enablePKCE }}
-      enableTestRetry: ${{ needs.parse-command.outputs.enableTestRetry }}
-      enableXrayReport: ${{ needs.parse-command.outputs.enableXrayReport }}
-      enableSlackReport: ${{ needs.parse-command.outputs.enableSlackReport }}
+      testModule: "${{ needs.parse-command.outputs.module }}"
+      testEnvironment: "${{ needs.parse-command.outputs.env }}"
+      testGroup: "${{ needs.parse-command.outputs.group }}"
+      enablePKCE: "${{ needs.parse-command.outputs.enablePKCE }}"
+      enableTestRetry: "${{ needs.parse-command.outputs.enableTestRetry }}"
+      enableXrayReport: "${{ needs.parse-command.outputs.enableXrayReport }}"
+      enableSlackReport: "${{ needs.parse-command.outputs.enableSlackReport }}"
       triggeredFromDevRepo: true
     secrets:
       XRAY_CLIENT_ID: ${{ secrets.XRAY_CLIENT_ID }}
