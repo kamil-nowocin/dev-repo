@@ -43,9 +43,9 @@ module.exports = async function manageLabels(github, context) {
   const DEFAULT_BOOL = 'false';
 
   // Allowed sets.
-  const allowedEnvs = ['prod', 'uat', 'integ', 'dev'];
-  const allowedModules = ['Websters', 'klastera'];
-  const allowedGroups = ['regression', 'smoke'];
+  const allowedEnvs = ['PROD', 'UAT', 'INTG', 'DEV'];
+  const allowedModules = ['Websters', 'Klasters'];
+  const allowedGroups = ['REGRESSION', 'SMOKE', "ALL"];
 
   // If the event is workflow_dispatch, use defaults.
   if (context.eventName === 'workflow_dispatch') {
