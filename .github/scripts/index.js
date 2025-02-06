@@ -10,7 +10,8 @@ const core = require('@actions/core');
  * @param {string} commentMessage - The error message to post to GitHub (formatted).
  * @returns {object} - An object with skip: "true".
  */
-async function postError(github, repo, issueNumber, logMessage, commentMessage) {
+async function postError(github, repo, issueNumber, logMessage,
+    commentMessage) {
   await github.rest.issues.createComment({
     owner: repo.owner,
     repo: repo.repo,
@@ -19,7 +20,7 @@ async function postError(github, repo, issueNumber, logMessage, commentMessage) 
   });
   // Log the plain-text message (without markdown formatting)
   core.error(logMessage);
-  return { skip: "true" };
+  return {skip: "true"};
 }
 
 /**
@@ -32,22 +33,24 @@ async function postError(github, repo, issueNumber, logMessage, commentMessage) 
  */
 function validateAllowed(val, allowed, field, caseInsensitive = false) {
   const cmpVal = caseInsensitive ? val.toLowerCase() : val;
-  const allowedValues = caseInsensitive ? allowed.map(x => x.toLowerCase()) : allowed;
+  const allowedValues = caseInsensitive ? allowed.map(x => x.toLowerCase())
+      : allowed;
   if (!allowedValues.includes(cmpVal)) {
-    throw new Error(`Invalid ${field}: ${val}. Allowed: ${allowed.join(', ')}.`);
+    throw new Error(
+        `Invalid ${field}: ${val}, allowed values are: ${allowed.join(', ')}!`);
   }
   return val;
 }
 
 module.exports = async function parseRunTests(github, context) {
   // Default values for manual triggers.
-  const DEFAULT_ENV = 'uat';
+  const DEFAULT_ENV = 'UAT';
   const DEFAULT_MODULE = 'Websters';
   const DEFAULT_GROUP = 'regression';
   const DEFAULT_BOOL = 'false';
 
   // Allowed sets.
-  const allowedEnvs = ['prod', 'uat', 'intg', 'dev'];
+  const allowedEnvs = ['PROD', 'UAT', 'INTG', 'DEV'];
   const allowedModules = ['Websters', 'Klasters'];
   const allowedGroups = ['REGRESSION', 'SMOKE', 'ALL'];
 
@@ -66,17 +69,18 @@ module.exports = async function parseRunTests(github, context) {
   }
 
   // Process comment events.
-  if (context.eventName === 'issue_comment' || context.eventName === 'pull_request_review_comment') {
+  if (context.eventName === 'issue_comment' || context.eventName
+      === 'pull_request_review_comment') {
     const issueNumber = context.eventName === 'issue_comment'
-        ? context.payload.issue.number
-        : context.payload.pull_request.number;
+        ? context.payload.issue.number : context.payload.pull_request.number;
     const repo = context.repo;
     const commentBody = context.payload.comment.body.trim();
 
     // If the comment does not start with /run-tests, skip tests.
     if (!commentBody.startsWith('/run-tests')) {
-      core.info("Comment does not contain '/run-tests'; skipping tests execution.");
-      return { skip: "true" };
+      core.info(
+          "Comment does not contain '/run-tests'; skipping tests execution.");
+      return {skip: "true"};
     }
 
     const tokens = commentBody.split(/\s+/);
@@ -86,49 +90,33 @@ module.exports = async function parseRunTests(github, context) {
     const expectedFormatLog = "/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>";
 
     if (tokens.length !== 8) {
-      return await postError(
-          github,
-          repo,
-          issueNumber,
-          `Invalid command format. Expected: ${expectedFormatLog}`,
-          `Invalid command format.\nExpected: ${expectedFormatForComment}`
-      );
+      return await postError(github, repo, issueNumber,
+          `Invalid command format! Expected: ${expectedFormatLog}`,
+          `Invalid command format!\nExpected: ${expectedFormatForComment}`);
     }
     if (tokens[0] !== '/run-tests') {
-      return await postError(
-          github,
-          repo,
-          issueNumber,
+      return await postError(github, repo, issueNumber,
           `Invalid command. Expected command to start with /run-tests. ${expectedFormatLog}`,
-          `Invalid command. Expected command to start with /run-tests.\n${expectedFormatForComment}`
-      );
+          `Invalid command. Expected command to start with /run-tests.\n${expectedFormatForComment}`);
     }
 
-    const [ , envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport ] = tokens;
+    const [, envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport] = tokens;
 
     try {
       validateAllowed(envArg, allowedEnvs, 'environment', true);
       validateAllowed(moduleArg, allowedModules, 'module');
       validateAllowed(groupArg, allowedGroups, 'group');
     } catch (err) {
-      return await postError(
-          github,
-          repo,
-          issueNumber,
-          err.message,
-          err.message
-      );
+      return await postError(github, repo, issueNumber, err.message,
+          err.message);
     }
 
-    for (const val of [enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport]) {
+    for (const val of
+        [enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport]) {
       if (val !== 'true' && val !== 'false') {
-        return await postError(
-            github,
-            repo,
-            issueNumber,
+        return await postError(github, repo, issueNumber,
             "Invalid boolean value. Expected 'true' or 'false'.",
-            "Invalid boolean value. Expected 'true' or 'false'."
-        );
+            "Invalid boolean value. Expected 'true' or 'false'.");
       }
     }
     return {
@@ -143,5 +131,5 @@ module.exports = async function parseRunTests(github, context) {
     };
   }
 
-  return { skip: "true" };
+  return {skip: "true"};
 };
