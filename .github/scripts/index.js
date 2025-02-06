@@ -41,8 +41,8 @@ function validateAllowed(val, allowed, field, caseInsensitive = false) {
   }
   if (!allowedValues.includes(cmpVal)) {
     throw new Error(
-        `Invalid ${field}: \`${val}\`, allowed values are: ${allowedValues.map(
-            x => `\`${x}\``).join(', ')}!`);
+        `Invalid ${field}: \`${val}\`! Allowed values are: ${allowedValues.map(
+            x => `\`${x}\``).join(', ')}`);
   }
   return val;
 }

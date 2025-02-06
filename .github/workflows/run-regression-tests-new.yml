@@ -59,10 +59,10 @@ jobs:
     name: "Build & Execute Tests 🛠️"
     needs: parse-command
     if: >
-      (github.eventName == 'workflow_dispatch') ||
-      (((github.eventName == 'issue_comment' || github.eventName == 'pull_request_review_comment') &&
-        startsWith(github.event.comment.body, '/run-tests')) &&
-       (needs.parse-command.outputs.skip != 'true'))
+      (github.event_name == 'workflow_dispatch') ||
+      (((github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') &&
+      startsWith(github.event.comment.body, '/run-tests')) &&
+      (needs.parse-command.outputs.skip != 'true'))
     uses: "kamil-nowocin/test-repo/.github/workflows/dev-run-tests-workflow.yaml@main"
     with:
       testModule: "${{ needs.parse-command.outputs.module }}"
