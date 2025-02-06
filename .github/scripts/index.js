@@ -9,13 +9,15 @@ const core = require('@actions/core');
  * @returns {object} - An object with skip: "true".
  */
 async function postError(github, repo, issueNumber, message) {
+  // Post a comment with markdown formatting if desired.
   await github.rest.issues.createComment({
     owner: repo.owner,
     repo: repo.repo,
     issue_number: issueNumber,
     body: message,
   });
-  core.error(message);
+  // Log a plain-text error to CI/CD logs.
+  core.error(message.replace(/[`]/g, ''));
   return { skip: "true" };
 }
 
@@ -77,25 +79,16 @@ module.exports = async function parseRunTests(github, context) {
     }
 
     const tokens = commentBody.split(/\s+/);
+    // Use a plain-text expected format for CI/CD logs.
+    const expectedFormat = "/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>";
     if (tokens.length !== 8) {
-      const expectedFormat = "```bash\n/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>\n```";
-      return await postError(github, repo, issueNumber, `Invalid command format. Expected:\n${expectedFormat}`);
+      return await postError(github, repo, issueNumber, `Invalid command format. Expected: ${expectedFormat}`);
     }
     if (tokens[0] !== '/run-tests') {
-      const expectedFormat = "```bash\n/run-tests <env> <module> <group> <enablePKCE> <enableTestRetry> <enableXrayReport> <enableSlackReport>\n```";
-      return await postError(github, repo, issueNumber, `Invalid command. Expected command to start with /run-tests.\n${expectedFormat}`);
+      return await postError(github, repo, issueNumber, `Invalid command. Expected command to start with /run-tests. ${expectedFormat}`);
     }
 
-    const [
-      , // Skip the command itself.
-      envArg,
-      moduleArg,
-      groupArg,
-      enablePKCE,
-      enableTestRetry,
-      enableXrayReport,
-      enableSlackReport
-    ] = tokens;
+    const [ , envArg, moduleArg, groupArg, enablePKCE, enableTestRetry, enableXrayReport, enableSlackReport ] = tokens;
 
     try {
       validateAllowed(envArg, allowedEnvs, 'environment', true);
@@ -122,6 +115,5 @@ module.exports = async function parseRunTests(github, context) {
     };
   }
 
-  // If event type is not supported, skip tests.
   return { skip: "true" };
 };
