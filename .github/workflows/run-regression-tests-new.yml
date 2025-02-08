@@ -1,7 +1,5 @@
 name: TEST | Deploy and Trigger Tests NEW
 
-run-name: "👷🚧[#${{ github.run_number }}][TEST] Executing tests from '/run-tests' command"
-
 on:
   workflow_dispatch:
   issue_comment:
