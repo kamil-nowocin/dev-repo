@@ -1,10 +1,6 @@
 name: TEST | Deploy and Trigger Tests
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
-
-run-name: "👷🚧[#${{ github.run_number }}][TEST] Executing tests of ${{ inputs.testModule }} on ${{ inputs.testEnvironment }}🌍"
+run-name: "👷🚧[#${{ github.run_number }}][TEST] Build, deploy and execute tests"
 
 on:
   workflow_dispatch:
